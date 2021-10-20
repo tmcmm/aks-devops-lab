@@ -1,0 +1,94 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+trigger:
+- main
+
+variables:
+  system.debug: true
+
+stages:
+- stage: stage1
+  jobs:
+  - job: MyTerraformJobs
+    continueOnError: false
+    steps: 
+    - task: TerraformInstaller@0
+      displayName: TerraformInstaller
+      inputs:
+        terraformVersion: 'v1.0.0'
+
+    - task: TerraformTaskV2@2 
+      displayName: Terraform init
+      inputs: 
+        provider: 'azurerm'
+        command: 'init'
+        backendServiceArm: 'Visual Studio Enterprise Subscription (87773e07-efc4-4356-8a70-0258227037a3)'
+        backendAzureRmResourceGroupName: myResourceGroup
+        backendAzureRmStorageAccountName: mystorageaccount0608
+        backendAzureRmContainerName: myblobcontainer
+        backendAzureRmKey: tf/terraform.tfstate
+    - task: TerraformTaskV2@2
+      displayName: Terraform plan
+      inputs:
+        command: plan
+        environmentServiceNameAzureRM: 'Visual Studio Enterprise Subscription (87773e07-efc4-4356-8a70-0258227037a3)'
+        backendServiceArm: 'Visual Studio Enterprise Subscription (87773e07-efc4-4356-8a70-0258227037a3)'
+        backendAzureRmResourceGroupName: myResourceGroup
+        backendAzureRmStorageAccountName: mystorageaccount0608
+        backendAzureRmContainerName: myblobcontainer
+        backendAzureRmKey: tf/terraform.tfstate
+
+  - deployment: mydeploy   
+    environment:
+      name: dev 
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: 6d15af64-176c-496d-b583-fd2ae21d4df4@1
+            inputs:
+              repository: self
+          - task: TerraformTaskV2@2 
+            displayName: Terraform init
+            inputs: 
+              provider: 'azurerm'
+              command: 'init'
+              backendServiceArm: 'Visual Studio Enterprise Subscription (87773e07-efc4-4356-8a70-0258227037a3)'
+              backendAzureRmResourceGroupName: myResourceGroup
+              backendAzureRmStorageAccountName: mystorageaccount0608
+              backendAzureRmContainerName: myblobcontainer
+              backendAzureRmKey: tf/terraform.tfstate
+          - task: TerraformTaskV2@2
+            continueOnError: false
+            inputs:
+              provider: 'azurerm'
+              command: 'apply'
+              environmentServiceNameAzureRM: 'Visual Studio Enterprise Subscription (87773e07-efc4-4356-8a70-0258227037a3)'
+
+- stage: stage2
+  jobs: 
+  - job: ManualApprovalJob
+    displayName: Manual Approval (Agentless job)
+    pool: server
+    steps:
+    - task: ManualValidation@0
+      displayName: Manual Validation
+      inputs:
+        notifyUsers: 879202243@qq.com
+        
+  - job: j2
+    steps:
+    - script: echo hello j2
+
+- stage: stage3
+  jobs:
+  - job: OtherJobs
+    displayName: Other Jobs
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+    - script: echo Hello, world!
+      displayName: 'Run a one-line script'
+
